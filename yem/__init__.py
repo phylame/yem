@@ -30,3 +30,7 @@ __author__ = version.AUTHOR
 __license__ = version.LICENSE
 __copyright__ = version.RIGHTS
 del version
+
+__all__ = dir()
+__all__.remove("utils")
+__all__.remove("core")

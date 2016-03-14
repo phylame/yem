@@ -20,15 +20,15 @@
 import time
 
 NAME = "Yem"
-FULL_NAME = "Yem an E-book Management"
+FULL_NAME = "Yet an E-book Management"
 VERSION_TUPLE = (1, 0, 0)
 VERSION = ".".join(str(x) for x in VERSION_TUPLE)
 RELEASE = "unstable"
-VERSION_MSG = "{0} {1}-{2}".format(NAME.upper(), VERSION, RELEASE)
+VERSION_MSG = "{0} {1}-{2}".format(NAME, VERSION, RELEASE)
 AUTHOR = "Peng Wan"
 AUTHOR_EMAIL = "phylame@163.com"
 DESCRIPTION = "Python e-books processing toolkit"
-VENDOR = "Peng Wan"
+VENDOR = "Peng Wan, PW"
 LICENSE = "Apache License, Version 2.0"
 SOURCE = "https://github.com/phylame/yem"
 RIGHTS = "Copyright (C) 2012-{0} {1}".format(time.localtime().tm_year, VENDOR)

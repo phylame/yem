@@ -15,34 +15,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Core of Yem"""
+"""Core components of Yem"""
 
 import datetime
-from . import utils
+from .utils import *
 from . import version
 
 __version__ = version.VERSION
 __author__ = version.AUTHOR
+del version
 
-# keys of chapter attributes
-TITLE = "title"
-AUTHOR = "author"
-COVER = "cover"
-INTRO = "intro"
-GENRE = "genre"
-DATE = "date"
-SUBJECT = "subject"
-KEYWORD = "keyword"
-PUBLISHER = "publisher"
-RIGHTS = "rights"
-LANGUAGE = "language"
-ISBN = "isbn"
-WORDS = "words"
-VENDOR = "vendor"
-BOOKBINDING = "bookbinding"
 
-__all__ = ["TITLE", "AUTHOR", "COVER", "INTRO", "GENRE", "DATE", "SUBJECT", "KEYWORD", "PUBLISHER",
-           "RIGHTS", "LANGUAGE", "ISBN", "WORDS", "VENDOR", "BOOKBINDING"]
+class Attributes:
+    """Declares well known book attribute names."""
+    TITLE = "title"
+    AUTHOR = "author"
+    COVER = "cover"
+    INTRO = "intro"
+    GENRE = "genre"
+    DATE = "date"
+    SUBJECT = "subject"
+    KEYWORD = "keyword"
+    PUBLISHER = "publisher"
+    RIGHTS = "rights"
+    LANGUAGE = "language"
+    ISBN = "isbn"
+    WORDS = "words"
+    VENDOR = "vendor"
+    BOOKBINDING = "bookbinding"
 
 
 class Chapter(object):
@@ -51,12 +51,11 @@ class Chapter(object):
         self.__text = None
         self.__children = []
         self.__cleanups = set()
-        if text is not None:
-            self.text = text
+        self.text = text
         self.update_attributes(**kwargs)
 
     def set_attribute(self, name, value):
-        self.__attributes[name] = utils.require_non_none(value, "value")
+        self.__attributes[non_empty(name, "name")] = non_none(value, "value")
 
     def has_attribute(self, name):
         return name in self.__attributes
@@ -80,8 +79,7 @@ class Chapter(object):
         elif isinstance(obj, dict):
             self.__attributes.update(obj)
         elif obj is not None:
-            raise TypeError(
-                "'obj' expect 'None', '{0}' or 'dict.".format(utils.get_class_name(Chapter)))
+            raise TypeError("'obj' require 'None', '{0}' or 'dict'.".format(class_name(Chapter)))
         self.__attributes.update(**kwargs)
 
     def clear_attributes(self):
@@ -101,41 +99,35 @@ class Chapter(object):
 
     @property
     def title(self):
-        return self.string_attribute(TITLE, "")
+        return self.string_attribute(Attributes.TITLE, "")
 
     @title.setter
     def title(self, title):
-        self.set_attribute(TITLE, title)
+        self.set_attribute(Attributes.TITLE, title)
 
     @property
     def cover(self):
-        return self.get_attribute(COVER, None)
+        return self.get_attribute(Attributes.COVER, None)
 
     @cover.setter
     def cover(self, cover):
-        if not isinstance(cover, utils.File):
-            raise TypeError("'cover' require '{0}' object".format(utils.get_class_name(utils.File)))
-        self.set_attribute(COVER, cover)
+        self.set_attribute(Attributes.COVER, valid_type(cover, File, "cover"))
 
     @property
     def intro(self):
-        return self.get_attribute(INTRO, None)
+        return self.get_attribute(Attributes.INTRO, None)
 
     @intro.setter
     def intro(self, intro):
-        if not isinstance(intro, utils.Text):
-            raise TypeError("'intro' require '{0}' object".format(utils.get_class_name(utils.Text)))
-        self.set_attribute(INTRO, intro)
+        self.set_attribute(Attributes.INTRO, valid_type(intro, Text, "intro"))
 
     @property
     def words(self):
-        return self.get_attribute(WORDS, 0)
+        return self.get_attribute(Attributes.WORDS, 0)
 
     @words.setter
     def words(self, words):
-        if not isinstance(words, int):
-            raise TypeError("'words' require 'int' value")
-        self.set_attribute(WORDS, words)
+        self.set_attribute(Attributes.WORDS, valid_type(words, int, "words"))
 
     @property
     def text(self):
@@ -143,15 +135,14 @@ class Chapter(object):
 
     @text.setter
     def text(self, text):
-        if not isinstance(text, utils.Text):
-            raise TypeError("'text' require '{0}' object".format(utils.get_class_name(utils.Text)))
-        self.__text = text
+        if text is None:
+            self.__text = text
+        else:
+            self.__text = valid_type(text, Text, "text")
 
     @staticmethod
     def _check_chapter_(chapter):
-        if not isinstance(chapter, Chapter):
-            raise TypeError("'{0}' object expected".format(utils.get_class_name(Chapter)))
-        return chapter
+        return valid_type(chapter, Chapter, "chapter")
 
     def append(self, chapter):
         self.__children.append(Chapter._check_chapter_(chapter))
@@ -165,7 +156,7 @@ class Chapter(object):
         elif isinstance(obj, Chapter):
             self.__children.remove(obj)
         else:
-            raise TypeError("index or '{0}' expected".format(utils.get_class_name(Chapter)))
+            raise TypeError("index or '{0}' expected".format(class_name(Chapter)))
 
     def index(self, chapter):
         return self.__children.index(Chapter._check_chapter_(chapter))
@@ -203,8 +194,7 @@ class Chapter(object):
             work()
 
     def __repr__(self):
-        return "{0}@{1}:attributes={2}".format(
-            utils.get_class_name(self.__class__), id(self), self.__attributes)
+        return "{0}@{1}:attributes={2}".format(class_name(self.__class__), id(self), self.__attributes)
 
     def __len__(self):
         return len(self.__children)
@@ -236,70 +226,67 @@ class Book(Chapter):
 
     @property
     def author(self):
-        return str(self.get_attribute(AUTHOR, ""))
+        return str(self.get_attribute(Attributes.AUTHOR, ""))
 
     @author.setter
     def author(self, author):
-        self.set_attribute(AUTHOR, author)
+        self.set_attribute(Attributes.AUTHOR, author)
 
     @property
     def genre(self):
-        return str(self.get_attribute(GENRE, ""))
+        return str(self.get_attribute(Attributes.GENRE, ""))
 
     @genre.setter
     def genre(self, genre):
-        self.set_attribute(GENRE, genre)
+        self.set_attribute(Attributes.GENRE, genre)
 
     @property
     def date(self):
-        return str(self.get_attribute(DATE, None))
+        return str(self.get_attribute(Attributes.DATE, None))
 
     @date.setter
     def date(self, date):
-        if not isinstance(date, datetime.date):
-            raise TypeError(
-                "'date' require '{0}' object".format(utils.get_class_name(datetime.date)))
-        self.set_attribute(DATE, date)
+        self.set_attribute(Attributes.DATE, valid_type(date, datetime.date, "date"))
 
     @property
     def subject(self):
-        return str(self.get_attribute(SUBJECT, ""))
+        return str(self.get_attribute(Attributes.SUBJECT, ""))
 
     @subject.setter
     def subject(self, subject):
-        self.set_attribute(SUBJECT, subject)
+        self.set_attribute(Attributes.SUBJECT, subject)
 
     @property
     def publisher(self):
-        return str(self.get_attribute(PUBLISHER, ""))
+        return str(self.get_attribute(Attributes.PUBLISHER, ""))
 
     @publisher.setter
     def publisher(self, publisher):
-        self.set_attribute(PUBLISHER, publisher)
+        self.set_attribute(Attributes.PUBLISHER, publisher)
 
     @property
     def rights(self):
-        return str(self.get_attribute(RIGHTS, ""))
+        return str(self.get_attribute(Attributes.RIGHTS, ""))
 
     @rights.setter
     def rights(self, rights):
-        self.set_attribute(RIGHTS, rights)
+        self.set_attribute(Attributes.RIGHTS, rights)
 
     @property
     def language(self):
-        return str(self.get_attribute(LANGUAGE, ""))
+        return str(self.get_attribute(Attributes.LANGUAGE, ""))
 
     @language.setter
     def language(self, language):
-        self.set_attribute(LANGUAGE, language)
+        self.set_attribute(Attributes.LANGUAGE, language)
 
     @property
     def vendor(self):
-        return str(self.get_attribute(VENDOR, ""))
+        return str(self.get_attribute(Attributes.VENDOR, ""))
 
     @vendor.setter
     def vendor(self, vendor):
-        self.set_attribute(VENDOR, vendor)
+        self.set_attribute(Attributes.VENDOR, vendor)
 
     def set_extension(self, key, value):
         self.__extensions[key] = value
@@ -340,4 +327,4 @@ def write_book(book, path, format, argument):
     pass
 
 
-__all__ += ["Chapter", "Book"]
+__all__ = ["Attributes", "Chapter", "Book"]

@@ -26,6 +26,7 @@ from . import version
 
 __version__ = version.VERSION
 __author__ = version.AUTHOR
+del version
 
 # line separator of current system
 _platform = sys.platform
@@ -63,35 +64,41 @@ MIMES = {
 }
 
 
-def get_mime(path):
-    return MIMES.get(os.path.splitext(path)[1], "application/octet-stream")
+def get_mime(name):
+    return MIMES.get(os.path.splitext(name)[1], "application/octet-stream")
 
 
 def detect_mime(mime, name):
     return mime if mime else get_mime(name)
 
 
-def require_non_none(o, name):
-    if o is None:
-        raise ValueError("'{0}' require not None".format(name))
-    return o
+def non_none(obj, name):
+    if obj is None:
+        raise ValueError("'{0}' require non-none value".format(name))
+    return obj
 
 
-def require_non_empty(s):
-    if not isinstance(s, str):
-        raise TypeError("'str' object required")
-    if len(s) == 0:
-        raise ValueError("unexpected empty string")
-    return s
+def non_empty(str, name):
+    if not isinstance(str, __builtins__.str):
+        raise TypeError("'{0}' require 'str' object".format(name))
+    if len(str) == 0:
+        raise ValueError("'{0}' require non-empty string")
+    return str
 
 
-def get_class_name(clazz):
+def class_name(clazz):
     return clazz.__module__ + "." + clazz.__name__
+
+
+def valid_type(obj, clazz, name):
+    if not isinstance(obj, clazz):
+        raise TypeError("'{0}' require '{1}' object".format(name, class_name(clazz)))
+    return obj
 
 
 class File(object):
     def __init__(self, mime):
-        self.__mime = require_non_empty(mime)
+        self.__mime = non_empty(mime, "mime")
 
     @property
     def name(self):
@@ -102,13 +109,12 @@ class File(object):
         return self.__mime
 
     @property
-    def content(self):
+    def data(self):
         raise NotImplementedError("Implementation required")
 
     def __repr__(self):
         return "{0};mime={1}".format(self.name, self.mime)
 
-    # factory functions
     @staticmethod
     def for_path(path, mime=None):
         return _CommonFile(path, mime)
@@ -122,17 +128,17 @@ class File(object):
         return _UrlFile(url, mime)
 
     @staticmethod
-    def for_bytes(name, b, mime=None):
-        return _ByteFile(name, b, mime)
+    def for_bytes(name, bytes, mime=None):
+        return _ByteFile(name, bytes, mime)
 
     @staticmethod
     def empty_file(name="_empty_", mime=None):
-        return _ByteFile(name, b"", detect_mime(mime, require_non_empty(name)))
+        return _ByteFile(name, b"", mime)
 
 
 class _CommonFile(File):
     def __init__(self, path, mime=None):
-        super(_CommonFile, self).__init__(detect_mime(mime, require_non_empty(path)))
+        super(_CommonFile, self).__init__(detect_mime(mime, non_empty(path, "path")))
         self.__path = path
 
     @property
@@ -140,7 +146,7 @@ class _CommonFile(File):
         return self.__path
 
     @property
-    def content(self):
+    def data(self):
         with open(self.__path, "rb") as fp:
             return fp.read()
 
@@ -150,7 +156,7 @@ class _CommonFile(File):
 
 class _BlockFile(File):
     def __init__(self, name, fp, offset, size, mime):
-        super(_BlockFile, self).__init__(detect_mime(mime, require_non_empty(name)))
+        super(_BlockFile, self).__init__(detect_mime(mime, non_empty(name, "name")))
         if not hasattr(fp, "read"):
             raise TypeError("'fp' require file-like object")
         if fp.closed:
@@ -167,43 +173,40 @@ class _BlockFile(File):
         return self.__name
 
     @property
-    def content(self):
+    def data(self):
         self.__fp.seek(self.__offset)
         return self.__fp.read(self.__size)
 
     def __repr__(self):
-        return "block://{0};offset={1};size={2}".format(super(_BlockFile, self).__repr__(),
-                                                        self.__offset, self.__size)
+        return "block://{0};offset={1};size={2}".format(super(_BlockFile, self).__repr__(), self.__offset, self.__size)
 
 
 class _UrlFile(File):
     def __init__(self, url, mime=None):
-        super(_UrlFile, self).__init__(detect_mime(mime, require_non_empty(url)))
+        super(_UrlFile, self).__init__(detect_mime(mime, non_empty(url, "url")))
         self.__url = url
 
     @property
     def name(self):
-        return urllib.parse.urlsplit(self.__url).path.lstrip('/')
+        return urllib.parse.urlsplit(self.__url).path.lstrip("/")
 
     @property
-    def content(self):
+    def data(self):
         return urllib.request.urlopen(self.__url).read()
 
 
 class _ByteFile(File):
-    def __init__(self, name, b, mime):
-        super(_ByteFile, self).__init__(detect_mime(mime, require_non_empty(name)))
+    def __init__(self, name, bytes, mime):
+        super(_ByteFile, self).__init__(detect_mime(mime, non_empty(name, "name")))
         self._name_ = name
-        if not isinstance(b, bytes):
-            raise TypeError("'b' require 'bytes' object")
-        self.__bytes = b
+        self.__bytes = valid_type(bytes, __builtins__.bytes, "bytes")
 
     @property
     def name(self):
         return self._name_
 
     @property
-    def content(self):
+    def data(self):
         return self.__bytes
 
     def __repr__(self):
@@ -214,8 +217,8 @@ class Text(object):
     PLAIN = "plain"
     HTML = "html"
 
-    def __init__(self, _type=PLAIN):
-        self.__type = require_non_empty(_type)
+    def __init__(self, type=PLAIN):
+        self.__type = non_empty(type, "type")
 
     @property
     def type(self):
@@ -237,8 +240,8 @@ class Text(object):
 
     # factory functions
     @staticmethod
-    def for_str(s, type=PLAIN):
-        return _RawText(s, type)
+    def for_string(str, type=PLAIN):
+        return _RawText(str, type)
 
     @staticmethod
     def for_file(file, encoding=ENCODING, type=PLAIN):
@@ -250,9 +253,9 @@ class Text(object):
 
 
 class _RawText(Text):
-    def __init__(self, _str, _type):
-        super(_RawText, self).__init__(_type)
-        self.__str = _str
+    def __init__(self, str, type):
+        super(_RawText, self).__init__(type)
+        self.__str = non_none(str, "str")
 
     @property
     def text(self):
@@ -260,17 +263,15 @@ class _RawText(Text):
 
 
 class _FileText(Text):
-    def __init__(self, file, encoding, _type):
-        super(_FileText, self).__init__(_type)
-        if not isinstance(file, File):
-            raise TypeError("'file' expect '{0}' object".format(get_class_name(File)))
-        self.__file = file
+    def __init__(self, file, encoding, type):
+        super(_FileText, self).__init__(type)
+        self.__file = valid_type(file, File, "file")
         self.__encoding = encoding if encoding else ENCODING
 
     @property
     def text(self):
-        return self.__file.content.decode(self.__encoding)
+        return self.__file.data.decode(self.__encoding)
 
 
-__all__ = ["File", "Text", "LINE_SEPARATOR", "ENCODING", "MIMES", "UNKNOWN_MIME", "get_mime",
-           "require_non_none", "require_non_empty", "get_class_name"]
+__all__ = ["File", "Text", "LINE_SEPARATOR", "ENCODING", "MIMES", "UNKNOWN_MIME", "get_mime", "non_none",
+           "non_empty", "class_name", "valid_type"]
