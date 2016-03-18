@@ -26,26 +26,25 @@ __author__ = version.AUTHOR
 del version
 
 
-class Attributes:
-    """Declares well known book attribute names."""
-    TITLE = "title"
-    AUTHOR = "author"
-    COVER = "cover"
-    INTRO = "intro"
-    GENRE = "genre"
-    DATE = "date"
-    SUBJECT = "subject"
-    KEYWORD = "keyword"
-    PUBLISHER = "publisher"
-    RIGHTS = "rights"
-    LANGUAGE = "language"
-    ISBN = "isbn"
-    WORDS = "words"
-    VENDOR = "vendor"
-    BOOKBINDING = "bookbinding"
-
-
 class Chapter(object):
+    attributes = {
+        "date": datetime.date,
+        "cover": File,
+        "bookbinding": str,
+        "subject": str,
+        "keyword": str,
+        "vendor": str,
+        "words": int,
+        "genre": str,
+        "publisher": str,
+        "intro": Text,
+        "isbn": str,
+        "author": str,
+        "title": str,
+        "language": str,
+        "rights": str
+    }
+
     def __init__(self, text=None, **kwargs):
         self.__attributes = {}
         self.__text = None
@@ -57,22 +56,6 @@ class Chapter(object):
     def set_attribute(self, name, value):
         self.__attributes[non_empty(name, "name")] = non_none(value, "value")
 
-    def has_attribute(self, name):
-        return name in self.__attributes
-
-    def get_attribute(self, name, default=None):
-        return self.__attributes.get(name, default)
-
-    def string_attribute(self, name, default=""):
-        value = self.get_attribute(name)
-        if value is not None:
-            return str(value)
-        else:
-            return default
-
-    def remove_attribute(self, name):
-        return self.__attributes.pop(name)
-
     def update_attributes(self, obj=None, **kwargs):
         if isinstance(obj, Chapter):
             self.__attributes.update(obj.__attributes)
@@ -81,6 +64,15 @@ class Chapter(object):
         elif obj is not None:
             raise TypeError("'obj' require 'None', '{0}' or 'dict'.".format(class_name(Chapter)))
         self.__attributes.update(**kwargs)
+
+    def has_attribute(self, name):
+        return name in self.__attributes
+
+    def get_attribute(self, name, default=None):
+        return self.__attributes.get(name, default)
+
+    def remove_attribute(self, name):
+        return self.__attributes.pop(name)
 
     def clear_attributes(self):
         self.__attributes.clear()
@@ -98,38 +90,6 @@ class Chapter(object):
         return self.__attributes.items()
 
     @property
-    def title(self):
-        return self.string_attribute(Attributes.TITLE, "")
-
-    @title.setter
-    def title(self, title):
-        self.set_attribute(Attributes.TITLE, title)
-
-    @property
-    def cover(self):
-        return self.get_attribute(Attributes.COVER, None)
-
-    @cover.setter
-    def cover(self, cover):
-        self.set_attribute(Attributes.COVER, valid_type(cover, File, "cover"))
-
-    @property
-    def intro(self):
-        return self.get_attribute(Attributes.INTRO, None)
-
-    @intro.setter
-    def intro(self, intro):
-        self.set_attribute(Attributes.INTRO, valid_type(intro, Text, "intro"))
-
-    @property
-    def words(self):
-        return self.get_attribute(Attributes.WORDS, 0)
-
-    @words.setter
-    def words(self, words):
-        self.set_attribute(Attributes.WORDS, valid_type(words, int, "words"))
-
-    @property
     def text(self):
         return self.__text
 
@@ -138,11 +98,11 @@ class Chapter(object):
         if text is None:
             self.__text = text
         else:
-            self.__text = valid_type(text, Text, "text")
+            self.__text = require_type(text, Text, "text")
 
     @staticmethod
     def _check_chapter_(chapter):
-        return valid_type(chapter, Chapter, "chapter")
+        return require_type(chapter, Chapter, "chapter")
 
     def append(self, chapter):
         self.__children.append(Chapter._check_chapter_(chapter))
@@ -202,6 +162,21 @@ class Chapter(object):
     def __iter__(self):
         return iter(self.__children)
 
+    def __getattribute__(self, item):
+        # a registered attribute
+        if item in Chapter.attributes:
+            return self.__attributes.get(item)
+        else:
+            return super(Chapter, self).__getattribute__(item)
+
+    def __setattr__(self, key, value):
+        # a registered attribute
+        clazz = Chapter.attributes.get(key)
+        if clazz is not None:
+            self.set_attribute(key, require_type(non_none(value, key), clazz, key))
+        else:
+            super(Chapter, self).__setattr__(key, value)
+
     def __getitem__(self, index):
         if isinstance(index, int):
             return self.chapter(index)
@@ -223,70 +198,6 @@ class Book(Chapter):
     def __init__(self, **kwargs):
         super(Book, self).__init__(**kwargs)
         self.__extensions = {}
-
-    @property
-    def author(self):
-        return str(self.get_attribute(Attributes.AUTHOR, ""))
-
-    @author.setter
-    def author(self, author):
-        self.set_attribute(Attributes.AUTHOR, author)
-
-    @property
-    def genre(self):
-        return str(self.get_attribute(Attributes.GENRE, ""))
-
-    @genre.setter
-    def genre(self, genre):
-        self.set_attribute(Attributes.GENRE, genre)
-
-    @property
-    def date(self):
-        return str(self.get_attribute(Attributes.DATE, None))
-
-    @date.setter
-    def date(self, date):
-        self.set_attribute(Attributes.DATE, valid_type(date, datetime.date, "date"))
-
-    @property
-    def subject(self):
-        return str(self.get_attribute(Attributes.SUBJECT, ""))
-
-    @subject.setter
-    def subject(self, subject):
-        self.set_attribute(Attributes.SUBJECT, subject)
-
-    @property
-    def publisher(self):
-        return str(self.get_attribute(Attributes.PUBLISHER, ""))
-
-    @publisher.setter
-    def publisher(self, publisher):
-        self.set_attribute(Attributes.PUBLISHER, publisher)
-
-    @property
-    def rights(self):
-        return str(self.get_attribute(Attributes.RIGHTS, ""))
-
-    @rights.setter
-    def rights(self, rights):
-        self.set_attribute(Attributes.RIGHTS, rights)
-
-    @property
-    def language(self):
-        return str(self.get_attribute(Attributes.LANGUAGE, ""))
-
-    @language.setter
-    def language(self, language):
-        self.set_attribute(Attributes.LANGUAGE, language)
-
-    @property
-    def vendor(self):
-        return str(self.get_attribute(Attributes.VENDOR, ""))
-
-    @vendor.setter
-    def vendor(self, vendor):
-        self.set_attribute(Attributes.VENDOR, vendor)
 
     def set_extension(self, key, value):
         self.__extensions[key] = value
@@ -327,4 +238,4 @@ def write_book(book, path, format, argument):
     pass
 
 
-__all__ = ["Attributes", "Chapter", "Book"]
+__all__ = ["Chapter", "Book", "read_book", "write_book"]

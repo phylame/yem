@@ -1,3 +1,5 @@
 from yem import *
 
-print(Attributes.__dict__)
+b = Book(title="Ex", author="PW")
+
+print(b)

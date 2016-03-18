@@ -72,28 +72,28 @@ def detect_mime(mime, name):
     return mime if mime else get_mime(name)
 
 
-def non_none(obj, name):
-    if obj is None:
+def non_none(o, name):
+    if o is None:
         raise ValueError("'{0}' require non-none value".format(name))
-    return obj
+    return o
 
 
-def non_empty(str, name):
-    if not isinstance(str, __builtins__.str):
-        raise TypeError("'{0}' require 'str' object".format(name))
-    if len(str) == 0:
+def non_empty(s, name):
+    if not isinstance(s, str):
+        raise TypeError("'{0}' require 's' object".format(name))
+    if len(s) == 0:
         raise ValueError("'{0}' require non-empty string")
-    return str
+    return s
 
 
 def class_name(clazz):
-    return clazz.__module__ + "." + clazz.__name__
+    return (clazz.__module__ + "." if clazz.__module__ != "builtins" else "") + clazz.__name__
 
 
-def valid_type(obj, clazz, name):
-    if not isinstance(obj, clazz):
+def require_type(o, clazz, name):
+    if not isinstance(o, clazz):
         raise TypeError("'{0}' require '{1}' object".format(name, class_name(clazz)))
-    return obj
+    return o
 
 
 class File(object):
@@ -199,7 +199,7 @@ class _ByteFile(File):
     def __init__(self, name, bytes, mime):
         super(_ByteFile, self).__init__(detect_mime(mime, non_empty(name, "name")))
         self._name_ = name
-        self.__bytes = valid_type(bytes, __builtins__.bytes, "bytes")
+        self.__bytes = require_type(bytes, __builtins__.bytes, "bytes")
 
     @property
     def name(self):
@@ -265,7 +265,7 @@ class _RawText(Text):
 class _FileText(Text):
     def __init__(self, file, encoding, type):
         super(_FileText, self).__init__(type)
-        self.__file = valid_type(file, File, "file")
+        self.__file = require_type(file, File, "file")
         self.__encoding = encoding if encoding else ENCODING
 
     @property
@@ -274,4 +274,4 @@ class _FileText(Text):
 
 
 __all__ = ["File", "Text", "LINE_SEPARATOR", "ENCODING", "MIMES", "UNKNOWN_MIME", "get_mime", "non_none",
-           "non_empty", "class_name", "valid_type"]
+           "non_empty", "class_name", "require_type"]
