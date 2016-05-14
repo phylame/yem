@@ -17,8 +17,12 @@
 #
 """Core components of Yem"""
 
+import os
+import decimal
 import datetime
+import traceback
 from .utils import *
+from . import values
 from . import version
 
 __version__ = version.VERSION
@@ -26,23 +30,33 @@ __author__ = version.AUTHOR
 del version
 
 
+class YemError(Exception):
+    pass
+
+
 class Chapter(object):
+    # predefined attributes
     attributes = {
-        "date": datetime.date,
-        "cover": File,
-        "bookbinding": str,
-        "subject": str,
-        "keyword": str,
-        "vendor": str,
-        "words": int,
-        "genre": str,
-        "publisher": str,
-        "intro": Text,
-        "isbn": str,
-        "author": str,
-        "title": str,
-        "language": str,
-        "rights": str
+        "pubdate": (datetime.datetime, values.pubdate),
+        "cover": (File, values.cover),
+        "binding": (str, values.binding),
+        "keywords": ((str, list, tuple), values.keywords),
+        "vendor": (str, values.vendor),
+        "words": (int, values.words),
+        "genre": (str, values.genre),
+        "state": (str, values.state),
+        "publisher": (str, values.pubdate),
+        "intro": ((Text, str), values.intro),
+        "isbn": (str, values.isbn),
+        "author": ((str, list, tuple), values.author),
+        "title": (str, values.title),
+        "language": (str, values.language),
+        "rights": (str, values.rights),
+        "protagonist": ((str, list, tuple), values.protagonist),
+        "pages": (int, values.pages),
+        "translator": ((str, list, tuple), values.translator),
+        "price": ((float, decimal.Decimal), values.price),
+        "series": (str, values.series)
     }
 
     def __init__(self, text=None, **kwargs):
@@ -54,7 +68,9 @@ class Chapter(object):
         self.update_attributes(**kwargs)
 
     def set_attribute(self, name, value):
-        self.__attributes[non_empty(name, "name")] = non_none(value, "value")
+        # if has attribute setting
+        attr = Chapter.attributes.get(non_empty(name, "name"))
+        self.__attributes[name] = with_type(non_none(value, name), attr[0], name) if attr else non_none(value, name)
 
     def update_attributes(self, obj=None, **kwargs):
         if isinstance(obj, Chapter):
@@ -69,7 +85,9 @@ class Chapter(object):
         return name in self.__attributes
 
     def get_attribute(self, name, default=None):
-        return self.__attributes.get(name, default)
+        # if has attribute setting
+        attr = Chapter.attributes.get(non_empty(name, "name"))
+        return self.__attributes.get(name, attr[1] if default is None and attr else default)
 
     def remove_attribute(self, name):
         return self.__attributes.pop(name)
@@ -98,11 +116,11 @@ class Chapter(object):
         if text is None:
             self.__text = text
         else:
-            self.__text = require_type(text, Text, "text")
+            self.__text = with_type(text, (Text, str), "text")
 
     @staticmethod
     def _check_chapter_(chapter):
-        return require_type(chapter, Chapter, "chapter")
+        return with_type(chapter, Chapter, "chapter")
 
     def append(self, chapter):
         self.__children.append(Chapter._check_chapter_(chapter))
@@ -165,30 +183,33 @@ class Chapter(object):
     def __getattribute__(self, item):
         # a registered attribute
         if item in Chapter.attributes:
-            return self.__attributes.get(item)
+            return self.get_attribute(item)
         else:
             return super(Chapter, self).__getattribute__(item)
 
     def __setattr__(self, key, value):
         # a registered attribute
-        clazz = Chapter.attributes.get(key)
-        if clazz is not None:
-            self.set_attribute(key, require_type(non_none(value, key), clazz, key))
+        if key in Chapter.attributes:
+            self.set_attribute(key, value)
         else:
             super(Chapter, self).__setattr__(key, value)
 
     def __getitem__(self, index):
         if isinstance(index, int):
+            # get sub chapter
             return self.chapter(index)
         elif isinstance(index, str):
+            # get attribute
             return self.get_attribute(index)
         else:
             raise TypeError("chapter index or attribute key required")
 
     def __setitem__(self, index, value):
         if isinstance(index, int):
+            # replace sub chapter
             self.replace(index, value)
         elif isinstance(index, str):
+            # set attribute
             self.set_attribute(index, value)
         else:
             raise TypeError("chapter index or attribute key required")
@@ -230,12 +251,55 @@ class Book(Chapter):
         return super(Book, self).__repr__() + ",extensions={0}".format(self.__extensions)
 
 
-def read_book(path, format, arguments):
-    pass
+book_workers = {}
 
 
-def write_book(book, path, format, argument):
-    pass
+def get_worker(name, load_builtins=True):
+    worker = book_workers.get(name)
+    if worker is None:
+        if load_builtins:
+            worker = _load_builtin_worker(name)
+        if worker is None:
+            raise YemError("unsupported format: " + name)
+    return worker
 
 
-__all__ = ["Chapter", "Book", "read_book", "write_book"]
+def set_worker(name, worker):
+    book_workers[name] = worker
+
+
+def _load_builtin_worker(name):
+    mn = "".join(Book.__module__.rpartition(".")[:-1]) + name
+    try:
+        mod = __import__(mn, fromlist=[name])
+    except ImportError:
+        traceback.print_exc()
+        return None
+    worker = dict(name=name, parser=mod.parse, maker=mod.make, extensions=mod.extensions)
+    set_worker(name, worker)
+    return worker
+
+
+def parse_book(path, format=None, **kwargs):
+    worker = get_worker(os.path.splitext(path)[-1][1:] if not format else format)
+    fp = open(path, "rb")
+    book = None
+    try:
+        book = worker["parser"](fp, **kwargs)
+        book.fp = fp
+    except:
+        traceback.print_exc()
+        fp.close()
+    return book
+
+
+def make_book(book, path, format="pmab", **kwargs):
+    worker = get_worker(format)
+    if os.path.isdir(path):
+        path = os.path.join(path, book.title + "." + worker["extensions"][0])
+    with open(path, "wb") as fp:
+        worker["maker"](book, fp, **kwargs)
+    return path
+
+
+__all__ = ["YemError", "Chapter", "Book", "parse_book", "make_book"]

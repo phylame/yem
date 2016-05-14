@@ -15,13 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""
-Pem's Manifest Archive of Book
 
-The default book packing type for Pem.
-"""
+from .constants import *
 
-from .maker import *
-from .parser import *
 
-extensions = ("pmab",)
+def is_pmab(zf):
+    return zf.read(MIME_FILE) == MT_PMAB
+
+
+def parse(file, **kwargs):
+    pass
