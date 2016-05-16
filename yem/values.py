@@ -32,7 +32,8 @@ GENRES = (
 STATES = ("全本", "连载", "未完")
 
 # default attribute values
-pubdate = datetime.datetime.now()
+date = datetime.datetime.now()
+pubdate = None
 cover = None
 binding = None
 keywords = None
@@ -50,7 +51,16 @@ pages = 0
 words = 0
 price = 0.0
 language = locale.getdefaultlocale()[0]
-rights = "(C) {0} {1}".format(pubdate.year, version.VENDOR)
+rights = "(C) {0} {1}".format(date.year, version.VENDOR)
 vendor = "{0} v{1}".format(version.NAME, version.VERSION)
 
 del version
+
+
+def reset(book):
+    book.date = date
+    book.genre = genre
+    book.state = state
+    book.language = language
+    book.rights = rights
+    book.vendor = vendor

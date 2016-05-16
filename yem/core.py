@@ -37,6 +37,7 @@ class YemError(Exception):
 class Chapter(object):
     # predefined attributes
     attributes = {
+        "date": (datetime.datetime, values.date),
         "pubdate": (datetime.datetime, values.pubdate),
         "cover": (File, values.cover),
         "binding": (str, values.binding),
@@ -66,6 +67,8 @@ class Chapter(object):
         self.__cleanups = set()
         self.text = text
         self.update_attributes(**kwargs)
+        if isinstance(self, Book):
+            values.reset(self)
 
     def set_attribute(self, name, value):
         # if has attribute setting

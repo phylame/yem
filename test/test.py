@@ -1,13 +1,11 @@
-import datetime
-from yem import *
+import yem
 
-b = Book(title="Ex", pubdate=datetime.datetime.now(), x=datetime.date.today(), y=datetime.datetime.today().time())
+b = yem.Book(title="Ex")
 b.author = ("pw", "jus", "lp")
 for i in range(1, 20):
-    ch = Chapter(title="Chapter " + str(i), text=Text.for_string("hello world"))
+    ch = yem.Chapter(title="Chapter " + str(i), text=yem.Text.for_string("hello world"))
     b.append(ch)
     if i % 2 == 0:
-        ch.append(Chapter(title=ch.title + ".1", text=Text.for_string("sub chapter")))
-
-b.x = 222
-print(make_book(b, r"D:\tmp", "pmab"))
+        ch.append(yem.Chapter(title=ch.title + ".1", text=yem.Text.for_string("sub chapter")))
+print(b)
+print(yem.make_book(b, r"D:\tmp", "pmab"))

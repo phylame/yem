@@ -21,8 +21,8 @@ Yet an E-book Management
 The powerful e-book processing toolkit
 """
 
-from .utils import *
 from .core import *
+from .utils import *
 from . import version
 
 __version__ = version.VERSION
