@@ -299,7 +299,10 @@ def parse_book(path, format=None, **kwargs):
 def make_book(book, path, format="pmab", **kwargs):
     worker = get_worker(format)
     if os.path.isdir(path):
-        path = os.path.join(path, book.title + "." + worker["extensions"][0])
+        path = os.path.join(path, book.title + os.extsep + worker["extensions"][0])
+    else:
+        if not os.path.splitext(path)[-1]:
+            path += os.extsep + worker["extensions"][0]
     with open(path, "wb") as fp:
         worker["maker"](book, fp, **kwargs)
     return path

@@ -26,7 +26,7 @@ from .constants import *
 def make(book, file, **kwargs):
     text_encoding = kwargs.get(KEY_TEXT_ENCODING, TEXT_ENCODING)
     xml_encoding = kwargs.get(KEY_XML_ENCODING, XML_ENCODING)
-    with zipfile.ZipFile(file, "w") as zf:
+    with zipfile.ZipFile(file, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.comment = kwargs.get(KEY_COMMENT, DEFAULT_COMMENT).encode(yem.PLATFORM_ENCODING)
         zf.writestr(MIME_FILE, MT_PMAB)
         # pbm

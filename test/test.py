@@ -1,3 +1,4 @@
+import setpath
 import yem
 
 b = yem.Book(title="Ex")
